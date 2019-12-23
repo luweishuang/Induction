@@ -12,7 +12,7 @@ import numpy as np
 代码结构清晰,值得学习 
 """
 class InductionGraph(Base):
-    def __init__(self, N, K, Q, N_test, **kwds):
+    def __init__(self, N, K, Q, **kwds):
         """       
         N: Num of classes for each batch
         K: Num of instances for each class in the support set
@@ -102,9 +102,7 @@ class InductionGraph(Base):
             for index, v in enumerate(tf.trainable_variables()):
                 #print("index:{} var:{}".format(index, v.name))
                 if 'bias' not in v.name \
-                        and 'word_embedding' not in v.name \
-                        and 'pos1_embedding' not in v.name \
-                        and 'pos2_embedding' not in v.name:
+                        and 'word_embedding' not in v.name:
                     l2_losses.append(v)
                     print("index:{} add l2 loss to var:{}".format(index, v.name))
 
