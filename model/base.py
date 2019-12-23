@@ -138,7 +138,7 @@ class Base:
                                                                     self.support_num_per_class,
                                                                     self.query_num_per_class)
                 # mask里值为:1,2,3,0
-                print("inputs mask:", inputs["mask"]) # support_set + query_set mask, shape:[(query+support)*class=(2+5)*5=35, max_seq_length = 37]
+                # print("inputs mask:", inputs["mask"]) # support_set + query_set mask, shape:[(query+support)*class=(2+5)*5=35, max_seq_length = 37]
                 #print("inputs[word]:", inputs["word"].shape) # [35*40]
                 curr_loss, curr_acc, _, curr_summary, global_step, attention_mask = sess.run(
                     [self.loss, self.accuracy, self.optimize, self.summary, self.global_step, self.alphas],
@@ -151,7 +151,7 @@ class Base:
                                }
                 )
 
-                print("attention mask:", attention_mask)
+                # print("attention mask:", attention_mask)
                 train_writer.add_summary(curr_summary, global_step)
                 iter_loss += curr_loss
                 iter_right += curr_acc
@@ -196,13 +196,13 @@ class Base:
                            self.input_pos1: inputs_val['pos1'],
                            self.input_pos2: inputs_val['pos2'],
                            self.query_label: query_label_val,
-                           self.keep_prob: 1}
+                           self.keep_prob: 1,
+                           self.mask_padding: inputs_val['mask']}
             )
             # val_writer.add_summary(curr_summary_val, it_val)
             iter_right_val += curr_acc_val
             iter_sample_val += 1
-            print(
-                '[EVAL] step: {0:4} | accuracy: {1:3.2f}%'.format(it_val + 1,
-                                                                  100 * iter_right_val / iter_sample_val) + '\r')
+            if it_val % 100 == 0:
+                print('[EVAL] step: {0:4} | accuracy: {1:3.2f}%'.format(it_val + 1, 100 * iter_right_val / iter_sample_val) + '\r')
         acc_val = iter_right_val / iter_sample_val
         return acc_val
