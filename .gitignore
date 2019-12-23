@@ -1,4 +1,5 @@
 .idea/
+data/sgns.merge.word.json
 _processed_data/
 checkpoints/
 data/glove.6B.50d.json

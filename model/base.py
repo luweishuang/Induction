@@ -15,7 +15,7 @@ class Base:
         self.embed_size = kwds.get("embed_size", 50)
         self.hidden_size = kwds.get("hidden_size", 100)
         self.is_training = kwds.get("is_training", True)
-        self.learning_rate = kwds.get("learning_rate", 0.0095)     # 0.001
+        self.learning_rate = kwds.get("learning_rate", 0.005)     # 0.001
         self.initializer = kwds.get("initializer", tf.random_normal_initializer(stddev=0.1))
         self.decay_steps = kwds.get("decay_steps", 100)
         self.decay_rate = kwds.get("decay_rate", 0.9)
@@ -42,10 +42,6 @@ class Base:
         ## input
         # input_words:[batch = (k_query+k_support)*c, seq_length]
         self.input_words = tf.placeholder(name="input_words", shape=[None, self.sequence_length], dtype=tf.int32)
-        # input_pos1:[batch = (k_query+k_support)*c, seq_length]
-        self.input_pos1 = tf.placeholder(name="input_pos1", shape=[None, self.sequence_length], dtype=tf.int32)
-        # input_pos2:[batch = (k_query+k_support)*c, seq_length]
-        self.input_pos2 = tf.placeholder(name="input_pos2", shape=[None, self.sequence_length], dtype=tf.int32)
         # query_label:[batch1=k_query*c]
         self.query_label = tf.placeholder(name="query_label", shape=[None], dtype=tf.int32)
         self.mask_padding = tf.placeholder(name="mask_padding", shape=[None, self.sequence_length], dtype=tf.int32) # 每个query的真实长度
@@ -63,27 +59,14 @@ class Base:
                                                       shape=[self.vocab_size, self.embed_size],
                                                       initializer=self.initializer,
                                                       trainable=True)
-            # 为啥需要2个pos embedding,没明白
-            # [2*seq_length, pos_embed_size=5]
-            self.pos1_embedding = tf.get_variable(name="pos1_embedding",
-                                                  shape=[2 * self.sequence_length, self.pos_embedding_dim],
-                                                  initializer=self.initializer, trainable=True)
-            # [2*seq_length, pos_embed_size=5]
-            self.pos2_embedding = tf.get_variable(name="pos2_embedding",
-                                                  shape=[2 * self.sequence_length, self.pos_embedding_dim],
-                                                  initializer=self.initializer, trainable=True)
 
     def get_embedding(self):
         # input_words:[batch, seq_length]
         # word_embedding:[vocab_size, embed_size]
         # embedded_words:[batch, seq_length, embed_size]
         embedded_words = tf.nn.embedding_lookup(self.word_embedding, self.input_words)
-        # embedd_pos1: [batch, seq_length, pos_embed_size]
-        embedded_pos1 = tf.nn.embedding_lookup(self.pos1_embedding, self.input_pos1)
-        # embedd_pos2: [batch, seq_length, pos_embed_size]
-        embedded_pos2 = tf.nn.embedding_lookup(self.pos2_embedding, self.input_pos2)
         # output: [batch, seq_length, embed_size+2*pos_embed_size]
-        return tf.concat([embedded_words, embedded_pos1, embedded_pos2], axis=2)
+        return tf.concat([embedded_words,], axis=2)
 
     def forward(self):
         raise NotImplementedError
@@ -123,13 +106,11 @@ class Base:
         with tf.Session(config=config) as sess:
             saver = tf.train.Saver()
             train_writer = tf.summary.FileWriter(join(model_dir_path, "train"), sess.graph)
-            # val_writer = tf.summary.FileWriter(join(model_dir_path, "val"), sess.graph)
 
             sess.run(tf.global_variables_initializer())
 
             curr_iter = 0
             best_acc = 0.0
-            not_best_count = 0  # Stop training after several epochs without improvement.
 
             print("training start ..")
             iter_loss, iter_right, iter_sample = 0.0, 0.0, 0.0
@@ -137,14 +118,12 @@ class Base:
                 inputs, query_label = train_data_loader.next_one_tf(self.num_classes,
                                                                     self.support_num_per_class,
                                                                     self.query_num_per_class)
-                # mask里值为:1,2,3,0
+                # mask里值为:1,0
                 # print("inputs mask:", inputs["mask"]) # support_set + query_set mask, shape:[(query+support)*class=(2+5)*5=35, max_seq_length = 37]
                 #print("inputs[word]:", inputs["word"].shape) # [35*40]
                 curr_loss, curr_acc, _, curr_summary, global_step, attention_mask = sess.run(
                     [self.loss, self.accuracy, self.optimize, self.summary, self.global_step, self.alphas],
                     feed_dict={self.input_words: inputs['word'],
-                               self.input_pos1: inputs['pos1'],  #
-                               self.input_pos2: inputs['pos2'],  #
                                self.query_label: query_label,
                                self.keep_prob: self.keepProb,
                                self.mask_padding: inputs['mask']
@@ -192,13 +171,10 @@ class Base:
             curr_acc_val, curr_summary_val = sess.run(
                 [self.accuracy, self.summary],
                 feed_dict={self.input_words: inputs_val['word'],
-                           self.input_pos1: inputs_val['pos1'],
-                           self.input_pos2: inputs_val['pos2'],
                            self.query_label: query_label_val,
                            self.keep_prob: 1,
                            self.mask_padding: inputs_val['mask']}
             )
-            # val_writer.add_summary(curr_summary_val, it_val)
             iter_right_val += curr_acc_val
             iter_sample_val += 1
             if it_val % 100 == 0:

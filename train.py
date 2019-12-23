@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from util.data_loader import JSONFileDataLoader
+# from util.data_loader import JSONFileDataLoader
+from util.data_loader_chinese import JSONFileDataLoader
 from model.graph import InductionGraph
 
 model_name = 'induction'
 N = 5
-K = 10
+K = 5
 if len(sys.argv) > 1:
     model_name = sys.argv[1]
 if len(sys.argv) > 2:
@@ -17,11 +18,11 @@ if len(sys.argv) > 3:
 print("{}-way-{}-shot Few-Shot Relation Classification".format(N, K))
 print("Model: {}".format(model_name))
 
-#max_length = 40
 max_length = 37
-embedding_file = "./data/glove.6B.50d.json"
-train_data_loader = JSONFileDataLoader('./data/train.json', embedding_file, max_length=max_length)
-val_data_loader = JSONFileDataLoader('./data/val.json', embedding_file, max_length=max_length)
+# embedding_file = "./data/glove.6B.50d.json"
+embedding_file = "./data/sgns.merge.word.json"
+train_data_loader = JSONFileDataLoader('./data/train_intent.json', embedding_file, max_length=max_length)
+val_data_loader = JSONFileDataLoader('./data/val_intent.json', embedding_file, max_length=max_length)
 
 
 if model_name == 'induction':

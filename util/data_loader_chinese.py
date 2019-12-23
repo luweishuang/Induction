@@ -83,7 +83,6 @@ class JSONFileDataLoader(FileDataLoader):
         '''
         self.file_name = file_name
         self.word_vec_file_name = word_vec_file_name
-        self.case_sensitive = case_sensitive
         self.max_length = max_length
         self.cuda = cuda
 
@@ -105,7 +104,7 @@ class JSONFileDataLoader(FileDataLoader):
 
             # Pre-process word vec
             self.word2id = {}
-            self.word_vec_tot = len(self.ori_word_vec) # 计算共有多少个token,每个token一个向量
+            self.word_vec_tot = len(self.ori_word_vec)   # 计算共有多少个token,每个token一个向量
             UNK_ID = self.word_vec_tot
             BLANK_ID = self.word_vec_tot + 1
             extra_token = [UNK_ID, BLANK_ID]
@@ -115,13 +114,11 @@ class JSONFileDataLoader(FileDataLoader):
             self.word_vec_mat = np.zeros((self.word_vec_tot + len(extra_token), self.word_vec_dim), dtype=np.float32)
             for cur_id, word in enumerate(self.ori_word_vec):
                 w = word['word']
-                if not case_sensitive:
-                    w = w.lower()
                 self.word2id[w] = cur_id
                 self.word_vec_mat[cur_id, :] = word['vec']
                 # embedding归一化
                 self.word_vec_mat[cur_id] = self.word_vec_mat[cur_id] / np.sqrt(np.sum(self.word_vec_mat[cur_id] ** 2))
-            self.word2id['UNK'] = UNK_ID # 加了两个token, unk, blank
+            self.word2id['UNK'] = UNK_ID      # 加了两个token, unk, blank
             self.word2id['BLANK'] = BLANK_ID
             print("Finish building")
 
@@ -131,16 +128,15 @@ class JSONFileDataLoader(FileDataLoader):
             for relation in self.ori_data:
                 self.instance_tot += len(self.ori_data[relation])
             self.data_word = np.zeros((self.instance_tot, self.max_length), dtype=np.int32)
-            # self.data_pos1 = np.zeros((self.instance_tot, self.max_length), dtype=np.int32)
-            # self.data_pos2 = np.zeros((self.instance_tot, self.max_length), dtype=np.int32)
             self.data_mask = np.zeros((self.instance_tot, self.max_length), dtype=np.int32)
             self.data_length = np.zeros((self.instance_tot), dtype=np.int32)
             self.rel2scope = {}  # left close right open
             i = 0
             for relation in self.ori_data:
                 self.rel2scope[relation] = [i, i]
+
                 for ins in self.ori_data[relation]:
-                    words = ins['tokens']
+                    words = ins
                     cur_ref_data_word = self.data_word[i]
                     for j, word in enumerate(words):
                         if j < max_length:
@@ -154,7 +150,7 @@ class JSONFileDataLoader(FileDataLoader):
                     if len(words) > max_length:
                         self.data_length[i] = max_length
                     for j in range(max_length):
-                        if j >= self.data_length[i]:  # 超出句子长度都padding 0
+                        if j >= self.data_length[i]:    # 超出句子长度都padding 0
                             self.data_mask[i][j] = 0
                         else:
                             self.data_mask[i][j] = 1
@@ -204,6 +200,8 @@ class JSONFileDataLoader(FileDataLoader):
 
         perm = np.random.permutation(N * Q)
         query_set['word'] = query_set['word'][perm]
+        query_set['pos1'] = query_set['pos1'][perm]
+        query_set['pos2'] = query_set['pos2'][perm]
         query_set['mask'] = query_set['mask'][perm]
         query_label = query_label[perm]
 
@@ -242,4 +240,5 @@ class JSONFileDataLoader(FileDataLoader):
         inputs = {}
         inputs.setdefault("word", np.concatenate([support_set['word'], query_set['word']]))
         inputs.setdefault("mask", np.concatenate([support_set['mask'], query_set['mask']]))
+        # print (inputs["word"].shape)
         return inputs, query_label
