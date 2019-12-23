@@ -5,15 +5,14 @@ Created on: 2019/5/27 11:08
 """
 import tensorflow as tf
 from tensorflow.contrib import rnn
-from model.layer_module import neural_tensor_layer, self_attention, dynamic_routing
+from model.layer_module import neural_tensor_layer, self_attention, dynamic_routing, calc_class_center
 from model.base import Base
 import numpy as np
-
 """
 代码结构清晰,值得学习 
 """
 class InductionGraph(Base):
-    def __init__(self, N, K, Q, **kwds):
+    def __init__(self, N, K, Q, N_test, **kwds):
         """       
         N: Num of classes for each batch
         K: Num of instances for each class in the support set
@@ -21,9 +20,9 @@ class InductionGraph(Base):
         """
         Base.__init__(self, kwds)
         # c-way k-shot
-        self.num_classes = N # 每次batch中有多少个class=5
-        self.support_num_per_class = K # k_support, 2
-        self.query_num_per_class = Q # k_query, 5
+        self.num_classes = N  # 每次batch中有多少个class=5
+        self.support_num_per_class = K  # k_support, 2
+        self.query_num_per_class = Q  # k_query, 5
         self.build()
 
     def forward(self):
@@ -66,23 +65,27 @@ class InductionGraph(Base):
             print("query_encoder:", query_encoder.shape) # [25, 40]
 
         # 归纳知识:提取与归纳支持集中每类的表示, 此处没有query集的处理
-        with tf.name_scope("InductionModule"):
-            # b_IJ:[c=5, k_support=2], 每个类class_i在support的样本j上的权重分数
-            b_IJ = tf.constant(np.zeros([self.num_classes, self.support_num_per_class], dtype=np.float32)) # 论文式(5)中的b_s
-            print("b_IJ size:", b_IJ.shape) # [5,2]
+        # with tf.name_scope("InductionModule"):
+        #     # b_IJ:[c=5, k_support=2], 每个类class_i在support的样本j上的权重分数
+        #     b_IJ = tf.constant(np.zeros([self.num_classes, self.support_num_per_class], dtype=np.float32)) # 论文式(5)中的b_s
+        #     print("b_IJ size:", b_IJ.shape)
+        #
+        #     # support_encoder:[batch1=k_support*c, hidden_size*2], support集中的样本数
+        #     # class_vector:[c, hidden_size*2], c:class number, 每类的类簇中心向量
+        #     class_vector = dynamic_routing(
+        #         tf.reshape(support_encoder, [self.num_classes, self.support_num_per_class, -1]),  # [c, k_support, hidden*2]
+        #         b_IJ)  # (k_support,hidden_size*2)
+        #     print("class vector size:", class_vector.shape)  # [c=5, hidden_size*2=40]
 
-            # support_encoder:[batch1=k_support*c, hidden_size*2], support集中的样本数
-            # class_vector:[c, hidden_size*2], c:class number, 每类的类簇中心向量
-            class_vector = dynamic_routing(
-                tf.reshape(support_encoder, [self.num_classes, self.support_num_per_class, -1]), # [c, k_support, hidden*2]
-                b_IJ)  # (k_support,hidden_size*2)
-            print("class vector size:", class_vector.shape) # [c=5, hidden_size*2=40]
+        with tf.name_scope("ClassVectorModule"):
+            class_vector = calc_class_center(
+                tf.reshape(support_encoder, [self.num_classes, self.support_num_per_class, -1]))  # [c, k_support, hidden*2]
 
         with tf.name_scope("RelationModule"):
             # class_vector:[c, hidden_size*2], c:class number, 各类的隐向量簇中心
             # query_encoder:[batch1=k_query*c, hidden_size*2], query集中的样本数, query在各类上的隐向量表示
             # probs:[batch1=k_query*c=25, c=5], query对各类的相似分数分布,每类下共有k_query个样本
-            self.probs = neural_tensor_layer(class_vector, query_encoder) # [k_query*c, c]
+            self.probs = neural_tensor_layer(class_vector, query_encoder)   # [k_query*c, c]
             print("probs size:", self.probs.shape)  #[c=5, hidden_size*2=40]
 
     def build_loss(self):

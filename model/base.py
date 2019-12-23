@@ -15,7 +15,7 @@ class Base:
         self.embed_size = kwds.get("embed_size", 50)
         self.hidden_size = kwds.get("hidden_size", 100)
         self.is_training = kwds.get("is_training", True)
-        self.learning_rate = kwds.get("learning_rate", 0.001)
+        self.learning_rate = kwds.get("learning_rate", 0.0095)     # 0.001
         self.initializer = kwds.get("initializer", tf.random_normal_initializer(stddev=0.1))
         self.decay_steps = kwds.get("decay_steps", 100)
         self.decay_rate = kwds.get("decay_rate", 0.9)
@@ -143,8 +143,8 @@ class Base:
                 curr_loss, curr_acc, _, curr_summary, global_step, attention_mask = sess.run(
                     [self.loss, self.accuracy, self.optimize, self.summary, self.global_step, self.alphas],
                     feed_dict={self.input_words: inputs['word'],
-                               self.input_pos1: inputs['pos1'], #
-                               self.input_pos2: inputs['pos2'], #
+                               self.input_pos1: inputs['pos1'],  #
+                               self.input_pos2: inputs['pos2'],  #
                                self.query_label: query_label,
                                self.keep_prob: self.keepProb,
                                self.mask_padding: inputs['mask']
@@ -184,14 +184,13 @@ class Base:
             print("Test accuracy: {}".format(test_acc))
 
     def eval(self, val_data_loader, sess, val_iter):
-
         iter_right_val, iter_sample_val = 0.0, 0.0
         for it_val in range(val_iter):
             inputs_val, query_label_val = val_data_loader.next_one_tf(self.num_classes,
                                                                       self.support_num_per_class,
                                                                       self.query_num_per_class)
-            curr_loss_val, curr_acc_val, curr_summary_val = sess.run(
-                [self.loss, self.accuracy, self.summary],
+            curr_acc_val, curr_summary_val = sess.run(
+                [self.accuracy, self.summary],
                 feed_dict={self.input_words: inputs_val['word'],
                            self.input_pos1: inputs_val['pos1'],
                            self.input_pos2: inputs_val['pos2'],
