@@ -19,7 +19,7 @@ def neural_tensor_layer(class_vector, query_encoder, out_size=100):
         # class_vector:[C, H]
         # M[:,:,slice]: [H, H],注意是2维矩阵
         # class_m:[C, H]
-        class_m = tf.matmul(class_vector, M[:, :, slice]) # [5, 40]
+        class_m = tf.matmul(class_vector, M[:, :, slice])     # [5, 40]
         #print("class_m:", class_m, "m slice:", M[:,:,slice])
         # class_m:[C, H]
         # query_encoder: [K*C, H]
@@ -40,6 +40,7 @@ def neural_tensor_layer(class_vector, query_encoder, out_size=100):
     # probs:[batch=k_query*c, c], 每类下有k_query, 每个query都预测属于某个类的概率
     probs = tf.nn.sigmoid(tf.matmul(V, W) + b)  # [batch=K*C, C],不知为何不用softmax
     return probs
+
 
 def self_attention(inputs, mask):
     """
@@ -145,6 +146,13 @@ def dynamic_routing(input, b_IJ, iter_routing=3):
     return c_I
 
 
+def calc_class_center(input):
+    C, K, H = input.shape
+    c_I = tf.reduce_mean(input, axis=1, keepdims=True)  # (C,1,H), 论文式(8)
+    c_I = tf.reshape(c_I, [C, -1])  # (C,H)
+    return c_I
+
+
 def squash(vector):
     '''Squashing function corresponding to Eq. 1
         vector:[C, H]
@@ -158,8 +166,11 @@ def squash(vector):
 
 
 if __name__ == "__main__":
-    import numpy as np
+    import json
+    # ori_data = json.load(open("../data/val.json", "r", encoding="utf-8"))   16类
 
+    import numpy as np
+    # N=3, K=3, Q=5, lstm_hidden_size=5
     inputs = np.random.random((24, 5, 10))  # (3*3+3*5,seq_len,lstm_hidden_size*2)
     mask = np.ones((24, 5))
     mask[0][4:] = 0
@@ -174,7 +185,8 @@ if __name__ == "__main__":
 
     support_encoder = tf.reshape(support_encoder, [3, 3, -1])
     b_IJ = tf.constant(np.zeros([3, 3], dtype=np.float32))
-    class_vector = dynamic_routing(support_encoder, b_IJ)
+    # class_vector1 = dynamic_routing(support_encoder, b_IJ)
+    class_vector = calc_class_center(support_encoder)
     inter = neural_tensor_layer(class_vector, query_encoder, out_size=10)
 
     # test accuracy
@@ -188,10 +200,10 @@ if __name__ == "__main__":
     sess = tf.Session()
     with sess.as_default():
         sess.run(tf.global_variables_initializer())
-        print(encoder.eval())
-        print(query_encoder.eval())
-        print(inter.eval())
+        # print(encoder.eval())
+        # print(query_encoder.eval())
+        # print(inter.eval())
         print(predict.eval())
         print(correct_prediction.eval())
         print(accuracy.eval())
-        print("att_mask:", att_mask.eval())
+        # print("att_mask:", att_mask.eval())

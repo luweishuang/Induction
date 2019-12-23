@@ -15,7 +15,7 @@ class Base:
         self.embed_size = kwds.get("embed_size", 50)
         self.hidden_size = kwds.get("hidden_size", 100)
         self.is_training = kwds.get("is_training", True)
-        self.learning_rate = kwds.get("learning_rate", 0.001)
+        self.learning_rate = kwds.get("learning_rate", 0.0095)     # 0.001
         self.initializer = kwds.get("initializer", tf.random_normal_initializer(stddev=0.1))
         self.decay_steps = kwds.get("decay_steps", 100)
         self.decay_rate = kwds.get("decay_rate", 0.9)
@@ -138,20 +138,20 @@ class Base:
                                                                     self.support_num_per_class,
                                                                     self.query_num_per_class)
                 # mask里值为:1,2,3,0
-                print("inputs mask:", inputs["mask"]) # support_set + query_set mask, shape:[(query+support)*class=(2+5)*5=35, max_seq_length = 37]
+                # print("inputs mask:", inputs["mask"]) # support_set + query_set mask, shape:[(query+support)*class=(2+5)*5=35, max_seq_length = 37]
                 #print("inputs[word]:", inputs["word"].shape) # [35*40]
                 curr_loss, curr_acc, _, curr_summary, global_step, attention_mask = sess.run(
                     [self.loss, self.accuracy, self.optimize, self.summary, self.global_step, self.alphas],
                     feed_dict={self.input_words: inputs['word'],
-                               self.input_pos1: inputs['pos1'], #
-                               self.input_pos2: inputs['pos2'], #
+                               self.input_pos1: inputs['pos1'],  #
+                               self.input_pos2: inputs['pos2'],  #
                                self.query_label: query_label,
                                self.keep_prob: self.keepProb,
                                self.mask_padding: inputs['mask']
                                }
                 )
 
-                print("attention mask:", attention_mask)
+                # print("attention mask:", attention_mask)
                 train_writer.add_summary(curr_summary, global_step)
                 iter_loss += curr_loss
                 iter_right += curr_acc
@@ -184,25 +184,24 @@ class Base:
             print("Test accuracy: {}".format(test_acc))
 
     def eval(self, val_data_loader, sess, val_iter):
-
         iter_right_val, iter_sample_val = 0.0, 0.0
         for it_val in range(val_iter):
             inputs_val, query_label_val = val_data_loader.next_one_tf(self.num_classes,
                                                                       self.support_num_per_class,
                                                                       self.query_num_per_class)
-            curr_loss_val, curr_acc_val, curr_summary_val = sess.run(
-                [self.loss, self.accuracy, self.summary],
+            curr_acc_val, curr_summary_val = sess.run(
+                [self.accuracy, self.summary],
                 feed_dict={self.input_words: inputs_val['word'],
                            self.input_pos1: inputs_val['pos1'],
                            self.input_pos2: inputs_val['pos2'],
                            self.query_label: query_label_val,
-                           self.keep_prob: 1}
+                           self.keep_prob: 1,
+                           self.mask_padding: inputs_val['mask']}
             )
             # val_writer.add_summary(curr_summary_val, it_val)
             iter_right_val += curr_acc_val
             iter_sample_val += 1
-            print(
-                '[EVAL] step: {0:4} | accuracy: {1:3.2f}%'.format(it_val + 1,
-                                                                  100 * iter_right_val / iter_sample_val) + '\r')
+            if it_val % 100 == 0:
+                print('[EVAL] step: {0:4} | accuracy: {1:3.2f}%'.format(it_val + 1, 100 * iter_right_val / iter_sample_val) + '\r')
         acc_val = iter_right_val / iter_sample_val
         return acc_val
