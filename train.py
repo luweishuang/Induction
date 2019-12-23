@@ -22,7 +22,7 @@ max_length = 37
 # embedding_file = "./data/glove.6B.50d.json"
 embedding_file = "./data/sgns.merge.word.json"
 # train_intent.json: train_class_num =  53   almost >=30
-# val_intent.json:   val_class_num =  81     almost >=6
+# val_intent.json:   val_class_num =  30     almost > 15
 train_data_loader = JSONFileDataLoader('./data/train_intent.json', embedding_file, max_length=max_length)
 val_data_loader = JSONFileDataLoader('./data/val_intent.json', embedding_file, max_length=max_length)
 
