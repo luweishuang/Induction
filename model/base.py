@@ -44,7 +44,7 @@ class Base:
         self.input_words = tf.placeholder(name="input_words", shape=[None, self.sequence_length], dtype=tf.int32)
         # query_label:[batch1=k_query*c]
         self.query_label = tf.placeholder(name="query_label", shape=[None], dtype=tf.int32)
-        self.mask_padding = tf.placeholder(name="mask_padding", shape=[None, self.sequence_length], dtype=tf.int32) # 每个query的真实长度
+        self.mask_padding = tf.placeholder(name="mask_padding", shape=[None, self.sequence_length], dtype=tf.int32)  # 每个query的真实长度
         self.keep_prob = tf.placeholder(name="keep_probx", dtype=tf.float32)
 
         # embedding matrix

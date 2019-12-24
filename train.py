@@ -26,7 +26,6 @@ embedding_file = "./data/sgns.merge.word.json"
 train_data_loader = JSONFileDataLoader('./data/train_intent.json', embedding_file, max_length=max_length)
 val_data_loader = JSONFileDataLoader('./data/val_intent.json', embedding_file, max_length=max_length)
 
-
 if model_name == 'induction':
     model = InductionGraph(N=N,
                            K=K,

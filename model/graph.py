@@ -59,10 +59,10 @@ class InductionGraph(Base):
             query_encoder = tf.slice(input_=encoder,
                                      begin=[self.num_classes * self.support_num_per_class, 0],
                                      size=[self.num_classes * self.query_num_per_class, self.hidden_size * 2])
-            print("output_rnn:", output_rnn.shape) # [?, 40, 40]
-            print("encoder:", encoder.shape) #[?, 40], ? = 10+25 = (2+5)*5 = 35
-            print("support_encoder:", support_encoder.shape) # [10, 40]
-            print("query_encoder:", query_encoder.shape) # [25, 40]
+            print("output_rnn:", output_rnn.shape)     # [?, max_len, self.hidden_size * 2]
+            print("encoder:", encoder.shape)           # [?, self.hidden_size * 2],
+            print("support_encoder:", support_encoder.shape)    # [self.num_classes * self.support_num_per_class,  self.hidden_size * 2]
+            print("query_encoder:", query_encoder.shape)        # [self.num_classes * self.query_num_per_class,  self.hidden_size * 2]
 
         # 归纳知识:提取与归纳支持集中每类的表示, 此处没有query集的处理
         # with tf.name_scope("InductionModule"):
@@ -70,7 +70,7 @@ class InductionGraph(Base):
         #     b_IJ = tf.constant(np.zeros([self.num_classes, self.support_num_per_class], dtype=np.float32)) # 论文式(5)中的b_s
         #     print("b_IJ size:", b_IJ.shape)
         #
-        #     # support_encoder:[batch1=k_support*c, hidden_size*2], support集中的样本数
+        #     # support_encoder:[batch1=k_support*c, hidden_size*2], support集中的样本数:q:
         #     # class_vector:[c, hidden_size*2], c:class number, 每类的类簇中心向量
         #     class_vector = dynamic_routing(
         #         tf.reshape(support_encoder, [self.num_classes, self.support_num_per_class, -1]),  # [c, k_support, hidden*2]
